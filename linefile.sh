@@ -18,7 +18,7 @@ while getopts ":hn" opt; do
   esac
 done
 shift $((OPTIND -1))
-
+#It's like using cat but slick
 input="$PWD/$1"
 n=1
 while IFS= read -r line

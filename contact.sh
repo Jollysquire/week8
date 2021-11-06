@@ -44,18 +44,40 @@ while getopts ":cr:d:h" opt; do
       echo 
       #Single contact
       if [[ -f $DIR/$contact ]]; then 
-        IFS=';'
-        while read -r email addr fname lname cnum hnum
-        do
-          printf "Email:%s\n" $email
-          printf "Name: %s %s\n" $fname $lname
-          printf "Address: %s\n" $addr
-          printf "Cell Number: %s\n" $cnum
-          if [[ $hnum != "" ]]; then
-            printf "Home Number: %s\n" $hnum
+        file=$DIR/$contact
+        if [[ $OPTARG -gt "-1" ]]; then
+          FILTER=("email name cell address home")
+          #Check if user entered a valid filter then sorts them
+          if [[ " ${FILTER[*]} " =~ " $OPTARG "  ]]; then 
+            #Use dictionary to later print category
+            declare -A filters
+              filters[email]=' { print $1 }'
+              filters[name]='{ print $3, $4 }'
+              filters[cell]=' { print $5 }'
+              filters[address]='{ print $2 }'
+              filters[home]='{ print $6 }'
+            VAR=$(awk -F';' "${filters[${OPTARG}]}" $file)
+            echo -e "${OPTARG^}: $VAR\n"
+          #Prints for all
+          elif [[ $OPTARG = 'all' ]]; then        
+            IFS=';'
+            while read -r email addr fname lname cnum hnum; do
+              printf "Email: %s\n" $email
+              printf "Name: %s %s\n" $fname $lname
+              printf "Address: %s\n" $addr
+              printf "Cell Number: %s\n" $cnum
+              if [[ $hnum != "" ]]; then
+                printf "Home Number: %s\n" $hnum
+              fi
+              done < $file     
+          else
+            #No filter/wrong filter passed
+            echo "Error: ${OPTARG} is not a valid argument"
+            exit 1
           fi
-        done < "$DIR/$contact"
+        fi
       #All contacts
+      #Identical to Single, would use functions if I was better and just loop.
       elif [[ $contact == '' ]]; then
         if [[ $OPTARG -gt "-1" ]]; then
           FILTER=("email name cell address home")
@@ -97,6 +119,7 @@ while getopts ":cr:d:h" opt; do
       fi
       ;;
       h)
+        #Prints help message
         echo "Usage:"
         echo "    -d [FILTER]       Displays contacts"
         echo "       Filters: all, email, name, address, cell, home"
